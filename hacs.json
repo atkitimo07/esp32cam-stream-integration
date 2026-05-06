@@ -1,0 +1,7 @@
+{
+  "name": "ESP32CAM-Stream Integration",
+  "content_in_root": false,
+  "country": ["AU"],
+  "homeassistant": "2024.1.0",
+  "render_readme": true
+}

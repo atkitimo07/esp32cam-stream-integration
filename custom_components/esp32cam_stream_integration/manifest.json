@@ -1,0 +1,10 @@
+{
+  "domain": "esp32cam-stream-integration",
+  "name": "ESP32CAM-Stream Integration",
+  "version": "0.1.0",
+  "documentation": "https://github.com/<you>/esp32cam-stream-integration",
+  "issue_tracker": "https://github.com/<you>/esp32cam-stream-integration/issues",
+  "dependencies": [],
+  "codeowners": ["@<you>"],
+  "requirements": ["aiohttp"]
+}
