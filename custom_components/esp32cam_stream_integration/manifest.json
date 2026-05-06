@@ -1,5 +1,5 @@
 {
-  "domain": "esp32cam-stream-integration",
+  "domain": "esp32cam_stream_integration",
   "name": "ESP32CAM-Stream Integration",
   "version": "0.1.0",
   "config_flow": true,
