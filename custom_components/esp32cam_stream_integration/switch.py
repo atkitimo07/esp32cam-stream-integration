@@ -1,5 +1,15 @@
 from homeassistant.components.switch import SwitchEntity
 import aiohttp
+from .const import DOMAIN
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    name = hass.data[DOMAIN][entry.entry_id]["name"]
+    host = hass.data[DOMAIN][entry.entry_id]["host"]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+
+    async_add_entities([
+        NightVisionSwitch(name, host, coordinator)
+    ])
 
 class NightVisionSwitch(SwitchEntity):
     def __init__(self, name, host, coordinator):
@@ -10,6 +20,10 @@ class NightVisionSwitch(SwitchEntity):
     @property
     def name(self):
         return f"{self._name} Night Vision"
+
+    @property
+    def unique_id(self):
+        return f"{self._host}_ir_led"
 
     @property
     def is_on(self):

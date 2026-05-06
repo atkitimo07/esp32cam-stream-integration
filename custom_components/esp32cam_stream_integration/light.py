@@ -1,5 +1,15 @@
 from homeassistant.components.light import LightEntity
 import aiohttp
+from .const import DOMAIN
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    name = hass.data[DOMAIN][entry.entry_id]["name"]
+    host = hass.data[DOMAIN][entry.entry_id]["host"]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+
+    async_add_entities([
+        IRLight(name, host, coordinator)
+    ])
 
 class IRLight(LightEntity):
     def __init__(self, name, host, coordinator):
@@ -10,6 +20,10 @@ class IRLight(LightEntity):
     @property
     def name(self):
         return f"{self._name} IR LED"
+
+    @property
+    def unique_id(self):
+        return f"{self._host}_ir_led"
 
     @property
     def brightness(self):
