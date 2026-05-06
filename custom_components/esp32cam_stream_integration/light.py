@@ -2,10 +2,10 @@ from homeassistant.components.light import LightEntity
 import aiohttp
 
 class IRLight(LightEntity):
-    def __init__(self, name, host):
+    def __init__(self, name, host, coordinator):
         self._name = name
         self._host = host
-        self._brightness = 0
+        self.coordinator = coordinator
 
     @property
     def name(self):
@@ -13,17 +13,15 @@ class IRLight(LightEntity):
 
     @property
     def brightness(self):
-        return self._brightness
+        value = self.coordinator.data["irled"]["state"]
+        return 0 if value is None else value * 255
 
     async def async_turn_on(self, **kwargs):
         brightness = kwargs.get("brightness", 255) / 255
-        self._brightness = brightness
 
         async with aiohttp.ClientSession() as session:
             await session.get(f"http://{self._host}/irled?state={brightness}")
 
     async def async_turn_off(self, **kwargs):
-        self._brightness = 0
-
         async with aiohttp.ClientSession() as session:
             await session.get(f"http://{self._host}/irled?state=0")

@@ -2,10 +2,10 @@ from homeassistant.components.switch import SwitchEntity
 import aiohttp
 
 class NightVisionSwitch(SwitchEntity):
-    def __init__(self, name, host):
+    def __init__(self, name, host, coordinator):
         self._name = name
         self._host = host
-        self._is_on = False
+        self.coordinator = coordinator
 
     @property
     def name(self):
@@ -13,14 +13,13 @@ class NightVisionSwitch(SwitchEntity):
 
     @property
     def is_on(self):
-        return self._is_on
+        value = self.coordinator.data["nightvision"]["state"]
+        return bool(value) if value is not None else False
 
     async def async_turn_on(self, **kwargs):
-        self._is_on = True
         async with aiohttp.ClientSession() as session:
             await session.get(f"http://{self._host}/nightvision?state=1")
 
     async def async_turn_off(self, **kwargs):
-        self._is_on = False
         async with aiohttp.ClientSession() as session:
             await session.get(f"http://{self._host}/nightvision?state=0")

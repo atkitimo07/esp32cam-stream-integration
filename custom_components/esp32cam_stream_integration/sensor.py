@@ -12,4 +12,5 @@ class StatusSensor(SensorEntity):
 
     @property
     def state(self):
-        return self.coordinator.data.get(self._key)
+        status = self.coordinator.data.get("status", {})
+        return status.get(self._key)
