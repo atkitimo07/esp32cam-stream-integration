@@ -2,7 +2,11 @@ from urllib.parse import urlencode
 
 import aiohttp
 import logging
-from homeassistant.components.camera import Camera, CameraEntityFeature
+from homeassistant.components.camera import Camera
+from homeassistant.helpers.aiohttp_client import (
+    async_aiohttp_proxy_web,
+    async_get_clientsession,
+)
 
 from .const import CONF_BASE_URL, CONF_GO2RTC_BASE_URL, CONF_GO2RTC_CAMERA_NAME, DOMAIN
 
@@ -28,8 +32,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class Esp32cam_stream_camera(Camera):
-    _attr_supported_features = CameraEntityFeature.STREAM
-
     def __init__(self, name, base_url, go2rtc_base_url, host, go2rtc_camera_name):
         super().__init__()
         self._name = name
@@ -46,11 +48,19 @@ class Esp32cam_stream_camera(Camera):
     def unique_id(self):
         return f"{self._host}_camera"
 
-    async def stream_source(self):
+    def _mjpeg_stream_url(self):
         query = urlencode({"src": self._go2rtc_camera_name})
-        stream_url = f"{self._go2rtc_base_url}/api/stream.mjpeg?{query}"
-        _LOGGER.debug("Using go2rtc stream source %s", stream_url)
-        return stream_url
+        return f"{self._go2rtc_base_url}/api/stream.mjpeg?{query}"
+
+    async def handle_async_mjpeg_stream(self, request):
+        stream_url = self._mjpeg_stream_url()
+        _LOGGER.debug("Proxying go2rtc MJPEG stream %s", stream_url)
+        session = async_get_clientsession(self.hass)
+        return await async_aiohttp_proxy_web(
+            self.hass,
+            request,
+            session.get(stream_url),
+        )
 
     async def _fetch_image(self, session, url):
         try:
@@ -93,23 +103,7 @@ class Esp32cam_stream_camera(Camera):
             height,
         )
         snapshot_url = f"{self._base_url}/snapshot"
-        frame_query = {"src": self._go2rtc_camera_name}
-        if width is not None:
-            frame_query["width"] = width
-        if height is not None:
-            frame_query["height"] = height
-        go2rtc_snapshot_url = (
-            f"{self._go2rtc_base_url}/api/frame.jpeg?{urlencode(frame_query)}"
-        )
 
         timeout = aiohttp.ClientTimeout(total=4, sock_connect=2, sock_read=3)
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            image = await self._fetch_image(session, snapshot_url)
-            if image is not None:
-                return image
-
-            _LOGGER.debug(
-                "Falling back to go2rtc snapshot endpoint for %s",
-                self._go2rtc_camera_name,
-            )
-            return await self._fetch_image(session, go2rtc_snapshot_url)
+            return await self._fetch_image(session, snapshot_url)
