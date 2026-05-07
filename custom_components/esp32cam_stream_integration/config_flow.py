@@ -3,7 +3,9 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
 
-from .const import CONF_GO2RTC_CAMERA_NAME, DOMAIN
+from .const import CONF_GO2RTC_BASE_URL, CONF_GO2RTC_CAMERA_NAME, DOMAIN
+
+DEFAULT_GO2RTC_BASE_URL = "http://localhost:1984"
 
 
 def _go2rtc_camera_name_from_input(user_input, fallback_name):
@@ -11,6 +13,14 @@ def _go2rtc_camera_name_from_input(user_input, fallback_name):
     if go2rtc_camera_name:
         return go2rtc_camera_name
     return fallback_name
+
+
+def _go2rtc_base_url_from_input(user_input):
+    go2rtc_base_url = user_input.get(
+        CONF_GO2RTC_BASE_URL,
+        DEFAULT_GO2RTC_BASE_URL,
+    ).strip()
+    return go2rtc_base_url or DEFAULT_GO2RTC_BASE_URL
 
 
 class ESP32CAMStreamIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -28,6 +38,7 @@ class ESP32CAMStreamIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMA
                 user_input,
                 user_input[CONF_NAME],
             )
+            user_input[CONF_GO2RTC_BASE_URL] = _go2rtc_base_url_from_input(user_input)
             return self.async_create_entry(
                 title=user_input[CONF_NAME],
                 data=user_input,
@@ -38,6 +49,10 @@ class ESP32CAMStreamIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMA
             data_schema=vol.Schema({
                 vol.Required(CONF_NAME): str,
                 vol.Required(CONF_HOST): str,
+                vol.Optional(
+                    CONF_GO2RTC_BASE_URL,
+                    default=DEFAULT_GO2RTC_BASE_URL,
+                ): str,
                 vol.Optional(CONF_GO2RTC_CAMERA_NAME, default=""): str,
             }),
         )
@@ -50,11 +65,15 @@ class ESP32CAMStreamIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMA
                 user_input,
                 user_input[CONF_NAME],
             )
+            user_input[CONF_GO2RTC_BASE_URL] = _go2rtc_base_url_from_input(user_input)
 
             self.hass.config_entries.async_update_entry(
                 config_entry,
                 title=user_input[CONF_NAME],
-                options={CONF_GO2RTC_CAMERA_NAME: user_input[CONF_GO2RTC_CAMERA_NAME]},
+                options={
+                    CONF_GO2RTC_BASE_URL: user_input[CONF_GO2RTC_BASE_URL],
+                    CONF_GO2RTC_CAMERA_NAME: user_input[CONF_GO2RTC_CAMERA_NAME],
+                },
             )
 
             return self.async_update_reload_and_abort(
@@ -69,12 +88,23 @@ class ESP32CAMStreamIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMA
                 config_entry.data[CONF_NAME],
             ),
         )
+        go2rtc_base_url = config_entry.options.get(
+            CONF_GO2RTC_BASE_URL,
+            config_entry.data.get(
+                CONF_GO2RTC_BASE_URL,
+                DEFAULT_GO2RTC_BASE_URL,
+            ),
+        )
 
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=vol.Schema({
                 vol.Required(CONF_NAME, default=config_entry.data[CONF_NAME]): str,
                 vol.Required(CONF_HOST, default=config_entry.data[CONF_HOST]): str,
+                vol.Optional(
+                    CONF_GO2RTC_BASE_URL,
+                    default=go2rtc_base_url,
+                ): str,
                 vol.Optional(
                     CONF_GO2RTC_CAMERA_NAME,
                     default=go2rtc_camera_name,
@@ -90,9 +120,11 @@ class ESP32CAMStreamIntegrationOptionsFlow(config_entries.OptionsFlow):
                 user_input,
                 self.config_entry.data[CONF_NAME],
             )
+            go2rtc_base_url = _go2rtc_base_url_from_input(user_input)
             return self.async_create_entry(
                 title="",
                 data={
+                    CONF_GO2RTC_BASE_URL: go2rtc_base_url,
                     CONF_GO2RTC_CAMERA_NAME: go2rtc_camera_name,
                 },
             )
@@ -104,10 +136,21 @@ class ESP32CAMStreamIntegrationOptionsFlow(config_entries.OptionsFlow):
                 self.config_entry.data[CONF_NAME],
             ),
         )
+        go2rtc_base_url = self.config_entry.options.get(
+            CONF_GO2RTC_BASE_URL,
+            self.config_entry.data.get(
+                CONF_GO2RTC_BASE_URL,
+                DEFAULT_GO2RTC_BASE_URL,
+            ),
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
+                vol.Optional(
+                    CONF_GO2RTC_BASE_URL,
+                    default=go2rtc_base_url,
+                ): str,
                 vol.Optional(
                     CONF_GO2RTC_CAMERA_NAME,
                     default=go2rtc_camera_name,

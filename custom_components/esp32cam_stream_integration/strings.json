@@ -5,6 +5,7 @@
         "data": {
           "name": "Name",
           "host": "Camera host",
+          "go2rtc_base_url": "go2rtc URL",
           "go2rtc_camera_name": "go2rtc camera name"
         }
       },
@@ -12,6 +13,7 @@
         "data": {
           "name": "Name",
           "host": "Camera host",
+          "go2rtc_base_url": "go2rtc URL",
           "go2rtc_camera_name": "go2rtc camera name"
         }
       }
@@ -21,6 +23,7 @@
     "step": {
       "init": {
         "data": {
+          "go2rtc_base_url": "go2rtc URL",
           "go2rtc_camera_name": "go2rtc camera name"
         }
       }
