@@ -6,8 +6,8 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 class CameraCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, host):
-        self.host = host
+    def __init__(self, hass, entry):
+        self.host = entry.data['host']
 
         super().__init__(
             hass,
@@ -36,9 +36,9 @@ class CameraCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         # Run concurrently but isolate failures per request
-        status_task = self._safe_get_json(f"{self.base_url}/status")
-        ir_task = self._safe_get_text(f"{self.base_url}/irled/state")
-        nv_task = self._safe_get_text(f"{self.base_url}/nightvision/state")
+        status_task = self._safe_get_json(f"{self.host}/status")
+        ir_task = self._safe_get_text(f"{self.host}/irled/state")
+        nv_task = self._safe_get_text(f"{self.host}/nightvision/state")
 
         status, ir_raw, nv_raw = await asyncio.gather(
             status_task,
