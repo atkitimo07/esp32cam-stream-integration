@@ -54,6 +54,7 @@ class Esp32cam_stream_camera(Camera):
 
     async def _fetch_image(self, session, url):
         try:
+            _LOGGER.debug("Fetching snapshot from %s", url)
             async with session.get(url) as resp:
                 image = await resp.read()
                 _LOGGER.debug(
@@ -85,6 +86,12 @@ class Esp32cam_stream_camera(Camera):
         return None
 
     async def async_camera_image(self, width=None, height=None):
+        _LOGGER.debug(
+            "Camera image requested for %s width=%s height=%s",
+            self.entity_id,
+            width,
+            height,
+        )
         snapshot_url = f"{self._base_url}/snapshot"
         frame_query = {"src": self._go2rtc_camera_name}
         if width is not None:
@@ -95,7 +102,7 @@ class Esp32cam_stream_camera(Camera):
             f"{self._go2rtc_base_url}/api/frame.jpeg?{urlencode(frame_query)}"
         )
 
-        timeout = aiohttp.ClientTimeout(total=10)
+        timeout = aiohttp.ClientTimeout(total=4, sock_connect=2, sock_read=3)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             image = await self._fetch_image(session, snapshot_url)
             if image is not None:

@@ -2,6 +2,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import asyncio
 import aiohttp
 from datetime import timedelta
+import json
 import logging
 from homeassistant.const import CONF_HOST
 
@@ -13,6 +14,17 @@ _LOGGER = logging.getLogger(__name__)
 def _parse_float(value):
     if value in (None, "", "null"):
         return None
+
+    if isinstance(value, dict):
+        value = value.get("state")
+
+    if isinstance(value, str):
+        value = value.strip()
+        if value.startswith("{"):
+            try:
+                return _parse_float(json.loads(value))
+            except json.JSONDecodeError:
+                pass
 
     try:
         return float(value)
@@ -41,18 +53,18 @@ class CameraCoordinator(DataUpdateCoordinator):
 
     async def _safe_get_text(self, url):
         try:
-            async with self.session.get(url, timeout=3) as resp:
+            async with self.session.get(url, timeout=2) as resp:
                 return await resp.text()
-        except Exception as e:
-            _LOGGER.debug("Failed GET %s: %s", url, e)
+        except Exception as err:
+            _LOGGER.debug("Failed GET %s: %r", url, err)
             return None
 
     async def _safe_get_json(self, url):
         try:
-            async with self.session.get(url, timeout=3) as resp:
+            async with self.session.get(url, timeout=2) as resp:
                 return await resp.json()
-        except Exception as e:
-            _LOGGER.debug("Failed JSON GET %s: %s", url, e)
+        except Exception as err:
+            _LOGGER.debug("Failed JSON GET %s: %r", url, err)
             return None
 
     async def _async_update_data(self):
