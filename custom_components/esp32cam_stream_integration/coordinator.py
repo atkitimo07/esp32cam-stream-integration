@@ -41,6 +41,7 @@ def _parse_int(value):
 class CameraCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, entry):
         self.base_url = normalize_base_url(entry.data[CONF_HOST])
+        self._last_data = None
 
         super().__init__(
             hass,
@@ -53,7 +54,7 @@ class CameraCoordinator(DataUpdateCoordinator):
 
     async def _safe_get_text(self, url):
         try:
-            async with self.session.get(url, timeout=2) as resp:
+            async with self.session.get(url, timeout=10) as resp:
                 return await resp.text()
         except Exception as err:
             _LOGGER.debug("Failed GET %s: %r", url, err)
@@ -61,7 +62,7 @@ class CameraCoordinator(DataUpdateCoordinator):
 
     async def _safe_get_json(self, url):
         try:
-            async with self.session.get(url, timeout=2) as resp:
+            async with self.session.get(url, timeout=10) as resp:
                 return await resp.json()
         except Exception as err:
             _LOGGER.debug("Failed JSON GET %s: %r", url, err)
@@ -80,7 +81,7 @@ class CameraCoordinator(DataUpdateCoordinator):
         )
 
         # Normalise safely
-        return {
+        data = {
             "status": status or {},
 
             "irled": {
@@ -91,6 +92,16 @@ class CameraCoordinator(DataUpdateCoordinator):
                 "state": _parse_int(nv_raw)
             }
         }
+
+        if self._last_data is not None:
+            if not data["status"]:
+                data["status"] = self._last_data.get("status", {})
+            for key in ("irled", "nightvision"):
+                if data[key]["state"] is None:
+                    data[key]["state"] = self._last_data.get(key, {}).get("state")
+
+        self._last_data = data
+        return data
 
     async def async_close(self):
         await self.session.close()

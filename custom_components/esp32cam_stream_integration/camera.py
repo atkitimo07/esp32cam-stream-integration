@@ -141,6 +141,6 @@ class Esp32cam_stream_camera(Camera):
         )
         snapshot_url = f"{self._base_url}/snapshot"
 
-        timeout = aiohttp.ClientTimeout(total=4, sock_connect=2, sock_read=3)
+        timeout = aiohttp.ClientTimeout(total=10, sock_connect=5, sock_read=10)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             return await self._fetch_image(session, snapshot_url)
