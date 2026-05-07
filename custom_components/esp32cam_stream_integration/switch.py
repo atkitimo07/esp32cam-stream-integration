@@ -3,6 +3,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import aiohttp
 
 from .const import CONF_BASE_URL, DOMAIN
+from .helpers import build_device_info
 
 async def async_setup_entry(hass, entry, async_add_entities):
     name = hass.data[DOMAIN][entry.entry_id]["name"]
@@ -21,6 +22,7 @@ class NightVisionSwitch(CoordinatorEntity, SwitchEntity):
         self._name = name
         self._base_url = base_url
         self._host = host
+        self._attr_device_info = build_device_info(name, host, base_url)
 
     @property
     def name(self):

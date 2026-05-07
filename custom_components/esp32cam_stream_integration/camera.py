@@ -8,6 +8,7 @@ from homeassistant.components.camera import Camera
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CONF_BASE_URL, CONF_GO2RTC_BASE_URL, CONF_GO2RTC_CAMERA_NAME, DOMAIN
+from .helpers import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class Esp32cam_stream_camera(Camera):
         self._go2rtc_base_url = go2rtc_base_url
         self._host = host
         self._go2rtc_camera_name = go2rtc_camera_name
+        self._attr_device_info = build_device_info(name, host, base_url)
 
     @property
     def name(self):
