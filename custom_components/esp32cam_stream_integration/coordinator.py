@@ -1,4 +1,5 @@
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+import asyncio
 import aiohttp
 from datetime import timedelta
 import logging
