@@ -1,6 +1,9 @@
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import aiohttp
 from datetime import timedelta
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 class CameraCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, host):
@@ -8,7 +11,7 @@ class CameraCoordinator(DataUpdateCoordinator):
 
         super().__init__(
             hass,
-            logger=None,
+            logger=_LOGGER,
             name="esp32cam_stream_integration",
             update_interval=timedelta(seconds=5),
         )
