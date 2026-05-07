@@ -1,9 +1,12 @@
 from urllib.parse import urlencode
 
 import aiohttp
+import logging
 from homeassistant.components.camera import Camera, CameraEntityFeature
 
 from .const import CONF_GO2RTC_CAMERA_NAME, DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -35,7 +38,9 @@ class Esp32cam_stream_camera(Camera):
 
     async def stream_source(self):
         query = urlencode({"src": self._go2rtc_camera_name})
-        return f"http://localhost:1984/api/stream.mjpeg?{query}"
+        stream_url = f"http://localhost:1984/api/stream.mjpeg?{query}"
+        _LOGGER.debug("Using go2rtc stream source %s", stream_url)
+        return stream_url
 
     async def async_camera_image(self):
         url = f"http://{self._host}/snapshot"

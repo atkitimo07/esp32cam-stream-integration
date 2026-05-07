@@ -49,13 +49,14 @@ class ESP32CAMStreamIntegrationOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         if user_input is not None:
+            go2rtc_camera_name = _go2rtc_camera_name_from_input(
+                user_input,
+                self.config_entry.data[CONF_NAME],
+            )
             return self.async_create_entry(
                 title="",
                 data={
-                    CONF_GO2RTC_CAMERA_NAME: _go2rtc_camera_name_from_input(
-                        user_input,
-                        self.config_entry.data[CONF_NAME],
-                    )
+                    CONF_GO2RTC_CAMERA_NAME: go2rtc_camera_name,
                 },
             )
 

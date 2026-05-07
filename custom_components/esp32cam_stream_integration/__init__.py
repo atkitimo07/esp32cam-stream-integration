@@ -1,13 +1,25 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import HomeAssistant
+import logging
 
 from .coordinator import CameraCoordinator
 from .const import CONF_GO2RTC_CAMERA_NAME, DOMAIN, PLATFORMS
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+def _get_go2rtc_camera_name(entry: ConfigEntry):
+    for source in (entry.options, entry.data):
+        go2rtc_camera_name = source.get(CONF_GO2RTC_CAMERA_NAME)
+        if isinstance(go2rtc_camera_name, str) and go2rtc_camera_name.strip():
+            return go2rtc_camera_name.strip()
+
+    return entry.data[CONF_NAME]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
@@ -15,9 +27,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     entry.async_on_unload(entry.add_update_listener(async_options_update_listener))
 
     host = entry.data[CONF_HOST]
-    go2rtc_camera_name = entry.options.get(
-        CONF_GO2RTC_CAMERA_NAME,
-        entry.data.get(CONF_GO2RTC_CAMERA_NAME, entry.data[CONF_NAME]),
+    go2rtc_camera_name = _get_go2rtc_camera_name(entry)
+    _LOGGER.debug(
+        "Using go2rtc camera name %r for %s",
+        go2rtc_camera_name,
+        entry.title,
     )
 
     coordinator = CameraCoordinator(hass, entry)
@@ -41,8 +55,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        data = hass.data[DOMAIN].pop(entry.entry_id)
-        await data["coordinator"].async_close()
+        data = hass.data[DOMAIN].pop(entry.entry_id, None)
+        if data is not None:
+            await data["coordinator"].async_close()
         if not hass.data[DOMAIN]:
             hass.data.pop(DOMAIN)
 
