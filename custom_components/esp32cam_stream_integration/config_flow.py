@@ -20,7 +20,7 @@ class ESP32CAMStreamIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMA
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return ESP32CAMStreamIntegrationOptionsFlow(config_entry)
+        return ESP32CAMStreamIntegrationOptionsFlow()
 
     async def async_step_user(self, user_input=None):
         if user_input is not None:
@@ -42,11 +42,48 @@ class ESP32CAMStreamIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMA
             }),
         )
 
+    async def async_step_reconfigure(self, user_input=None):
+        config_entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            user_input[CONF_GO2RTC_CAMERA_NAME] = _go2rtc_camera_name_from_input(
+                user_input,
+                user_input[CONF_NAME],
+            )
+
+            self.hass.config_entries.async_update_entry(
+                config_entry,
+                title=user_input[CONF_NAME],
+                options={CONF_GO2RTC_CAMERA_NAME: user_input[CONF_GO2RTC_CAMERA_NAME]},
+            )
+
+            return self.async_update_reload_and_abort(
+                config_entry,
+                data_updates=user_input,
+            )
+
+        go2rtc_camera_name = config_entry.options.get(
+            CONF_GO2RTC_CAMERA_NAME,
+            config_entry.data.get(
+                CONF_GO2RTC_CAMERA_NAME,
+                config_entry.data[CONF_NAME],
+            ),
+        )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema({
+                vol.Required(CONF_NAME, default=config_entry.data[CONF_NAME]): str,
+                vol.Required(CONF_HOST, default=config_entry.data[CONF_HOST]): str,
+                vol.Optional(
+                    CONF_GO2RTC_CAMERA_NAME,
+                    default=go2rtc_camera_name,
+                ): str,
+            }),
+        )
+
 
 class ESP32CAMStreamIntegrationOptionsFlow(config_entries.OptionsFlow):
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
-
     async def async_step_init(self, user_input=None):
         if user_input is not None:
             go2rtc_camera_name = _go2rtc_camera_name_from_input(

@@ -7,6 +7,13 @@
           "host": "Camera host",
           "go2rtc_camera_name": "go2rtc camera name"
         }
+      },
+      "reconfigure": {
+        "data": {
+          "name": "Name",
+          "host": "Camera host",
+          "go2rtc_camera_name": "go2rtc camera name"
+        }
       }
     }
   },
