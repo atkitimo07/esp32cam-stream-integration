@@ -3,12 +3,32 @@ import asyncio
 import aiohttp
 from datetime import timedelta
 import logging
+from homeassistant.const import CONF_HOST
+
+from .helpers import normalize_base_url
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def _parse_float(value):
+    if value in (None, "", "null"):
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        _LOGGER.debug("Unable to parse float value: %r", value)
+        return None
+
+
+def _parse_int(value):
+    parsed = _parse_float(value)
+    return int(parsed) if parsed is not None else None
+
+
 class CameraCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, entry):
-        self.host = entry.data['host']
+        self.base_url = normalize_base_url(entry.data[CONF_HOST])
 
         super().__init__(
             hass,
@@ -37,9 +57,9 @@ class CameraCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         # Run concurrently but isolate failures per request
-        status_task = self._safe_get_json(f"{self.host}/status")
-        ir_task = self._safe_get_text(f"{self.host}/irled/state")
-        nv_task = self._safe_get_text(f"{self.host}/nightvision/state")
+        status_task = self._safe_get_json(f"{self.base_url}/status")
+        ir_task = self._safe_get_text(f"{self.base_url}/irled/state")
+        nv_task = self._safe_get_text(f"{self.base_url}/nightvision/state")
 
         status, ir_raw, nv_raw = await asyncio.gather(
             status_task,
@@ -52,11 +72,11 @@ class CameraCoordinator(DataUpdateCoordinator):
             "status": status or {},
 
             "irled": {
-                "state": float(ir_raw) if ir_raw not in (None, "", "null") else None
+                "state": _parse_float(ir_raw)
             },
 
             "nightvision": {
-                "state": int(float(nv_raw)) if nv_raw not in (None, "", "null") else None
+                "state": _parse_int(nv_raw)
             }
         }
 

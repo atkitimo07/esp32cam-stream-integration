@@ -4,7 +4,8 @@ from homeassistant.core import HomeAssistant
 import logging
 
 from .coordinator import CameraCoordinator
-from .const import CONF_GO2RTC_CAMERA_NAME, DOMAIN, PLATFORMS
+from .const import CONF_BASE_URL, CONF_GO2RTC_CAMERA_NAME, DOMAIN, PLATFORMS
+from .helpers import normalize_base_url
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     entry.async_on_unload(entry.add_update_listener(async_options_update_listener))
 
     host = entry.data[CONF_HOST]
+    base_url = normalize_base_url(host)
     go2rtc_camera_name = _get_go2rtc_camera_name(entry)
     _LOGGER.debug(
         "Using go2rtc camera name %r for %s",
@@ -40,6 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Store shared data
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
+        CONF_BASE_URL: base_url,
         "host": host,
         "name": entry.data[CONF_NAME],
         CONF_GO2RTC_CAMERA_NAME: go2rtc_camera_name,

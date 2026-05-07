@@ -4,27 +4,29 @@ import aiohttp
 import logging
 from homeassistant.components.camera import Camera, CameraEntityFeature
 
-from .const import CONF_GO2RTC_CAMERA_NAME, DOMAIN
+from .const import CONF_BASE_URL, CONF_GO2RTC_CAMERA_NAME, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    base_url = hass.data[DOMAIN][entry.entry_id][CONF_BASE_URL]
     name = hass.data[DOMAIN][entry.entry_id]["name"]
     host = hass.data[DOMAIN][entry.entry_id]["host"]
     go2rtc_camera_name = hass.data[DOMAIN][entry.entry_id][CONF_GO2RTC_CAMERA_NAME]
 
     async_add_entities([
-        Esp32cam_stream_camera(name, host, go2rtc_camera_name)
+        Esp32cam_stream_camera(name, base_url, host, go2rtc_camera_name)
     ])
 
 
 class Esp32cam_stream_camera(Camera):
     _attr_supported_features = CameraEntityFeature.STREAM
 
-    def __init__(self, name, host, go2rtc_camera_name):
+    def __init__(self, name, base_url, host, go2rtc_camera_name):
         super().__init__()
         self._name = name
+        self._base_url = base_url
         self._host = host
         self._go2rtc_camera_name = go2rtc_camera_name
 
@@ -43,7 +45,7 @@ class Esp32cam_stream_camera(Camera):
         return stream_url
 
     async def async_camera_image(self):
-        url = f"http://{self._host}/snapshot"
+        url = f"{self._base_url}/snapshot"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:

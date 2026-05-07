@@ -1,4 +1,6 @@
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 from .const import DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -12,12 +14,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
         StatusSensor(name, "temp", host, coordinator)
     ])
 
-class StatusSensor(SensorEntity):
+
+class StatusSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, name, key, host, coordinator):
+        super().__init__(coordinator)
         self._name = name
         self._key = key
         self._host = host
-        self.coordinator = coordinator
 
     @property
     def name(self):
@@ -28,6 +31,6 @@ class StatusSensor(SensorEntity):
         return f"{self._host}_{self._key}"
 
     @property
-    def state(self):
+    def native_value(self):
         status = self.coordinator.data.get("status", {})
         return status.get(self._key)
