@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "name": "Name",
+          "host": "Camera host",
+          "go2rtc_camera_name": "go2rtc camera name"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "go2rtc_camera_name": "go2rtc camera name"
+        }
+      }
+    }
+  }
+}

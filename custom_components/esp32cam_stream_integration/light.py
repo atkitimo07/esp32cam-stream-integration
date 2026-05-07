@@ -1,4 +1,4 @@
-from homeassistant.components.light import LightEntity
+from homeassistant.components.light import ColorMode, LightEntity
 import aiohttp
 from .const import DOMAIN
 
@@ -12,6 +12,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ])
 
 class IRLight(LightEntity):
+    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+    _attr_color_mode = ColorMode.BRIGHTNESS
+
     def __init__(self, name, host, coordinator):
         self._name = name
         self._host = host
