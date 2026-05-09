@@ -1,12 +1,11 @@
 from urllib.parse import urlencode
 
 import aiohttp
+import asyncio
 import logging
+from aiohttp import web
 from homeassistant.components.camera import Camera
-from homeassistant.helpers.aiohttp_client import (
-    async_aiohttp_proxy_web,
-    async_get_clientsession,
-)
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CONF_BASE_URL, CONF_GO2RTC_BASE_URL, CONF_GO2RTC_CAMERA_NAME, DOMAIN
 from .helpers import build_device_info
@@ -33,14 +32,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class Esp32cam_stream_camera(Camera):
-    def __init__(
-        self,
-        name,
-        base_url,
-        go2rtc_base_url,
-        host,
-        go2rtc_camera_name,
-    ):
+    def __init__(self, name, base_url, go2rtc_base_url, host, go2rtc_camera_name):
         super().__init__()
         self._name = name
         self._base_url = base_url
@@ -61,18 +53,53 @@ class Esp32cam_stream_camera(Camera):
         query = urlencode({"src": self._go2rtc_camera_name})
         return f"{self._go2rtc_base_url}/api/stream.mjpeg?{query}"
 
-    async def stream_source(self):
-        return self._mjpeg_stream_url()
-
     async def handle_async_mjpeg_stream(self, request):
         stream_url = self._mjpeg_stream_url()
         _LOGGER.debug("Proxying go2rtc MJPEG stream %s", stream_url)
         session = async_get_clientsession(self.hass)
-        return await async_aiohttp_proxy_web(
-            self.hass,
-            request,
-            session.get(stream_url),
-        )
+
+        upstream = None
+        response = web.StreamResponse()
+
+        try:
+            upstream = await session.get(stream_url)
+            response.set_status(upstream.status)
+
+            content_type = upstream.headers.get("Content-Type")
+            if content_type:
+                response.headers["Content-Type"] = content_type
+            else:
+                response.headers["Content-Type"] = "multipart/x-mixed-replace"
+
+            await response.prepare(request)
+
+            async for chunk in upstream.content.iter_chunked(8192):
+                await response.write(chunk)
+
+            return response
+        except asyncio.CancelledError:
+            _LOGGER.debug("MJPEG stream client disconnected for %s", self.entity_id)
+            raise
+        except (ConnectionResetError, BrokenPipeError):
+            _LOGGER.debug("MJPEG stream client disconnected for %s", self.entity_id)
+            return response
+        except aiohttp.ClientConnectionError as err:
+            if upstream is not None:
+                _LOGGER.debug(
+                    "MJPEG upstream stream closed for %s: %s",
+                    self.entity_id,
+                    err,
+                )
+                return response
+            _LOGGER.warning("MJPEG stream request failed for %s: %s", stream_url, err)
+            raise
+        except aiohttp.ClientError as err:
+            _LOGGER.warning("MJPEG stream request failed for %s: %s", stream_url, err)
+            raise
+        finally:
+            if upstream is not None:
+                upstream.close()
+                _LOGGER.debug("Closed go2rtc MJPEG stream for %s", self.entity_id)
 
     async def _fetch_image(self, session, url):
         try:
