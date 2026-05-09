@@ -34,7 +34,7 @@ class NightVisionSwitch(CoordinatorEntity, SwitchEntity):
 
     @property
     def available(self):
-        return bool(self.coordinator.data and self.coordinator.data.get("available"))
+        return bool(self.coordinator.data.get("available"))
 
     @property
     def is_on(self):

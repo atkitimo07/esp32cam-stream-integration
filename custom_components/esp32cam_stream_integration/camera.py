@@ -62,7 +62,7 @@ class Esp32cam_stream_camera(CoordinatorEntity, Camera):
 
     @property
     def available(self):
-        return bool(self.coordinator.data and self.coordinator.data.get("available"))
+        return bool(self.coordinator.data.get("available"))
 
     def _mjpeg_stream_url(self):
         query = urlencode({"src": self._go2rtc_camera_name})

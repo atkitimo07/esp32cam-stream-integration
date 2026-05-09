@@ -89,10 +89,7 @@ class CameraCoordinator(DataUpdateCoordinator):
             return
 
         self._availability_failures += 1
-        if (
-            not self._available
-            or self._availability_failures >= AVAILABILITY_FAILURE_THRESHOLD
-        ):
+        if (self._availability_failures >= AVAILABILITY_FAILURE_THRESHOLD):
             self._available = False
 
     async def _async_update_data(self):
@@ -107,9 +104,7 @@ class CameraCoordinator(DataUpdateCoordinator):
             nv_task,
         )
 
-        # /status can miss responses during streaming, so availability is based on
-        # the lightweight state endpoints that prove the firmware HTTP app responds.
-        self._update_availability(ir_raw is not None or nv_raw is not None)
+        self._update_availability(ir_raw is not None or nv_raw is not None or status is not None)
 
         # Normalise safely
         data = {

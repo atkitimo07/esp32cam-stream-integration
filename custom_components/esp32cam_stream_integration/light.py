@@ -37,7 +37,7 @@ class IRLight(CoordinatorEntity, LightEntity):
 
     @property
     def available(self):
-        return bool(self.coordinator.data and self.coordinator.data.get("available"))
+        return bool(self.coordinator.data.get("available"))
 
     @property
     def brightness(self):
