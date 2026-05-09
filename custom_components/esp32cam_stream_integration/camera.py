@@ -6,6 +6,7 @@ import logging
 from aiohttp import web
 from homeassistant.components.camera import Camera
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_BASE_URL, CONF_GO2RTC_BASE_URL, CONF_GO2RTC_CAMERA_NAME, DOMAIN
 from .helpers import build_device_info
@@ -19,6 +20,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     name = hass.data[DOMAIN][entry.entry_id]["name"]
     host = hass.data[DOMAIN][entry.entry_id]["host"]
     go2rtc_camera_name = hass.data[DOMAIN][entry.entry_id][CONF_GO2RTC_CAMERA_NAME]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
     async_add_entities([
         Esp32cam_stream_camera(
@@ -27,13 +29,22 @@ async def async_setup_entry(hass, entry, async_add_entities):
             go2rtc_base_url,
             host,
             go2rtc_camera_name,
+            coordinator,
         )
     ])
 
 
-class Esp32cam_stream_camera(Camera):
-    def __init__(self, name, base_url, go2rtc_base_url, host, go2rtc_camera_name):
-        super().__init__()
+class Esp32cam_stream_camera(CoordinatorEntity, Camera):
+    def __init__(
+        self,
+        name,
+        base_url,
+        go2rtc_base_url,
+        host,
+        go2rtc_camera_name,
+        coordinator,
+    ):
+        super().__init__(coordinator)
         self._name = name
         self._base_url = base_url
         self._go2rtc_base_url = go2rtc_base_url
@@ -48,6 +59,10 @@ class Esp32cam_stream_camera(Camera):
     @property
     def unique_id(self):
         return f"{self._host}_camera"
+
+    @property
+    def available(self):
+        return bool(self.coordinator.data and self.coordinator.data.get("available"))
 
     def _mjpeg_stream_url(self):
         query = urlencode({"src": self._go2rtc_camera_name})

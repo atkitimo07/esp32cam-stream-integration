@@ -10,6 +10,8 @@ from .helpers import normalize_base_url
 
 _LOGGER = logging.getLogger(__name__)
 
+AVAILABILITY_FAILURE_THRESHOLD = 2
+
 
 def _parse_float(value):
     if value in (None, "", "null"):
@@ -42,6 +44,8 @@ class CameraCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, entry):
         self.base_url = normalize_base_url(entry.data[CONF_HOST])
         self._last_data = None
+        self._available = False
+        self._availability_failures = 0
 
         super().__init__(
             hass,
@@ -55,6 +59,9 @@ class CameraCoordinator(DataUpdateCoordinator):
     async def _safe_get_text(self, url):
         try:
             async with self.session.get(url, timeout=10) as resp:
+                if resp.status != 200:
+                    _LOGGER.debug("GET %s returned HTTP status %s", url, resp.status)
+                    return None
                 return await resp.text()
         except Exception as err:
             _LOGGER.debug("Failed GET %s: %r", url, err)
@@ -63,10 +70,30 @@ class CameraCoordinator(DataUpdateCoordinator):
     async def _safe_get_json(self, url):
         try:
             async with self.session.get(url, timeout=10) as resp:
+                if resp.status != 200:
+                    _LOGGER.debug(
+                        "JSON GET %s returned HTTP status %s",
+                        url,
+                        resp.status,
+                    )
+                    return None
                 return await resp.json()
         except Exception as err:
             _LOGGER.debug("Failed JSON GET %s: %r", url, err)
             return None
+
+    def _update_availability(self, probe_success):
+        if probe_success:
+            self._availability_failures = 0
+            self._available = True
+            return
+
+        self._availability_failures += 1
+        if (
+            not self._available
+            or self._availability_failures >= AVAILABILITY_FAILURE_THRESHOLD
+        ):
+            self._available = False
 
     async def _async_update_data(self):
         # Run concurrently but isolate failures per request
@@ -80,8 +107,13 @@ class CameraCoordinator(DataUpdateCoordinator):
             nv_task,
         )
 
+        # /status can miss responses during streaming, so availability is based on
+        # the lightweight state endpoints that prove the firmware HTTP app responds.
+        self._update_availability(ir_raw is not None or nv_raw is not None)
+
         # Normalise safely
         data = {
+            "available": self._available,
             "status": status or {},
 
             "irled": {

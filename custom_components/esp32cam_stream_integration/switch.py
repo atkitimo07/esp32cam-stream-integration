@@ -33,6 +33,10 @@ class NightVisionSwitch(CoordinatorEntity, SwitchEntity):
         return f"{self._host}_night_vision"
 
     @property
+    def available(self):
+        return bool(self.coordinator.data and self.coordinator.data.get("available"))
+
+    @property
     def is_on(self):
         value = self.coordinator.data.get("nightvision", {}).get("state")
         return bool(value) if value is not None else False

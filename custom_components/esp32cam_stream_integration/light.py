@@ -36,6 +36,10 @@ class IRLight(CoordinatorEntity, LightEntity):
         return f"{self._host}_ir_led"
 
     @property
+    def available(self):
+        return bool(self.coordinator.data and self.coordinator.data.get("available"))
+
+    @property
     def brightness(self):
         value = self.coordinator.data.get("irled", {}).get("state")
         return 0 if value is None else round(value * 255)

@@ -70,6 +70,10 @@ class StatusSensor(CoordinatorEntity, SensorEntity):
         return f"{self._host}_{self._key}"
 
     @property
+    def available(self):
+        return bool(self.coordinator.data and self.coordinator.data.get("available"))
+
+    @property
     def native_value(self):
         status = self.coordinator.data.get("status", {})
         return _parse_number(status.get(self._key))
