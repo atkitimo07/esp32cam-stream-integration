@@ -34,7 +34,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ])
 
 
-class Esp32cam_stream_camera(CoordinatorEntity, Camera):
+class Esp32cam_stream_camera(Camera):
     def __init__(
         self,
         name,
