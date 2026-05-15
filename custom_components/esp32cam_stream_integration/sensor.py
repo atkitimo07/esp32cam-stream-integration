@@ -1,4 +1,8 @@
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -105,6 +109,7 @@ class StatusSensor(CoordinatorEntity, SensorEntity):
 
 class ImageAnalysisSensor(CoordinatorEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, name, key, base_url, host, coordinator):
         super().__init__(coordinator)
