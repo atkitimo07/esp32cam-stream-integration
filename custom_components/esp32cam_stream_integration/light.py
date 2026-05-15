@@ -53,6 +53,9 @@ class IRLight(CoordinatorEntity, LightEntity):
         brightness = kwargs.get("brightness", 255) / 255
 
         async with aiohttp.ClientSession() as session:
+            night_vision = self.coordinator.data.get("nightvision", {}).get("state")
+            if not night_vision:
+                await session.get(f"{self._base_url}/nightvision?state=1")
             await session.get(f"{self._base_url}/irled?state={brightness}")
         await self.coordinator.async_request_refresh()
 
