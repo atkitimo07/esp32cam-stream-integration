@@ -20,9 +20,9 @@ DEFAULT_SETTINGS = {
     AUTO_IR_LED_ENABLED: False,
     ANALYSIS_INTERVAL: 30,
     NIGHT_VISION_ON_THRESHOLD: 45,
-    NIGHT_VISION_OFF_THRESHOLD: 65,
+    NIGHT_VISION_OFF_THRESHOLD: 120,
     IR_LED_ON_THRESHOLD: 35,
-    IR_LED_OFF_THRESHOLD: 55,
+    IR_LED_OFF_THRESHOLD: 130,
     IR_LED_BRIGHTNESS: 75,
 }
 
@@ -74,7 +74,7 @@ def analyze_snapshot(image_bytes):
     }
 
 
-def choose_actions(settings, analysis, night_vision_on, ir_led_on):
+def assign_auto_control_actions(settings, analysis, night_vision_on, ir_led_on):
     luminance = analysis.get("p25_luminance")
     if luminance is None:
         return []
@@ -83,26 +83,26 @@ def choose_actions(settings, analysis, night_vision_on, ir_led_on):
     night_vision_changed = False
 
     if settings[AUTO_NIGHT_VISION_ENABLED]:
+        # If night vision off and image is dark:
         if not night_vision_on and luminance <= settings[NIGHT_VISION_ON_THRESHOLD]:
             actions.append(ControlAction("nightvision", 1))
             night_vision_on = True
             night_vision_changed = True
-        elif night_vision_on and luminance >= settings[NIGHT_VISION_OFF_THRESHOLD]:
+        # If night vision is on, and LED is off, and image is bright:
+        elif night_vision_on and not ir_led_on and luminance >= settings[NIGHT_VISION_OFF_THRESHOLD]:
             actions.append(ControlAction("nightvision", 0))
             night_vision_on = False
             night_vision_changed = True
-
-    if not night_vision_on:
-        if ir_led_on:
-            actions.append(ControlAction("irled", 0))
-        return actions
-
-    if night_vision_changed or not settings[AUTO_IR_LED_ENABLED]:
-        return actions
-
-    if not ir_led_on and luminance <= settings[IR_LED_ON_THRESHOLD]:
-        actions.append(ControlAction("irled", round(settings[IR_LED_BRIGHTNESS] / 100, 3)))
-    elif ir_led_on and luminance >= settings[IR_LED_OFF_THRESHOLD]:
-        actions.append(ControlAction("irled", 0))
+            if ir_led_on and settings[AUTO_IR_LED_ENABLED]:
+                actions.append(ControlAction("irled", 0))
+        
+        # Only control LED if night vision if already on
+        elif night_vision_on and settings[AUTO_IR_LED_ENABLED]:
+            # If LED off and image is dark:
+            if not ir_led_on and luminance <= settings[IR_LED_ON_THRESHOLD]:
+                actions.append(ControlAction("irled", round(settings[IR_LED_BRIGHTNESS] / 100, 3)))
+            # If LED is on and image is bright:
+            elif ir_led_on and luminance >= settings[IR_LED_OFF_THRESHOLD]:
+                actions.append(ControlAction("irled", 0))
 
     return actions

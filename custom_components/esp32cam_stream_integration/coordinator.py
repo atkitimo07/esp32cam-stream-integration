@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .auto_control import ANALYSIS_INTERVAL, DEFAULT_SETTINGS, analyze_snapshot, choose_actions
+from .auto_control import ANALYSIS_INTERVAL, DEFAULT_SETTINGS, analyze_snapshot, assign_auto_control_actions
 from .const import CONF_GO2RTC_BASE_URL, CONF_GO2RTC_CAMERA_NAME
 from .helpers import normalize_base_url
 
@@ -184,7 +184,7 @@ class CameraCoordinator(DataUpdateCoordinator):
         night_vision_on = bool(night_vision_state) if night_vision_state is not None else False
         ir_state = data.get("irled", {}).get("state")
         ir_on = bool(ir_state) if ir_state is not None else False
-        actions = choose_actions(
+        actions = assign_auto_control_actions(
             self.settings,
             data.get("image_analysis", {}),
             night_vision_on,
