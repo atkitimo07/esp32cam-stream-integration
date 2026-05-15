@@ -53,6 +53,10 @@ class Esp32cam_stream_camera(Camera):
         query = urlencode({"src": self._go2rtc_camera_name})
         return f"{self._go2rtc_base_url}/api/stream.mjpeg?{query}"
 
+    def _snapshot_url(self):
+        query = urlencode({"src": self._go2rtc_camera_name})
+        return f"{self._go2rtc_base_url}/api/frame.jpeg?{query}"
+
     async def handle_async_mjpeg_stream(self, request):
         stream_url = self._mjpeg_stream_url()
         _LOGGER.debug("Proxying go2rtc MJPEG stream %s", stream_url)
@@ -141,8 +145,7 @@ class Esp32cam_stream_camera(Camera):
             width,
             height,
         )
-        snapshot_url = f"{self._base_url}/snapshot"
 
         timeout = aiohttp.ClientTimeout(total=10, sock_connect=5, sock_read=10)
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            return await self._fetch_image(session, snapshot_url)
+            return await self._fetch_image(session, self._snapshot_url())
