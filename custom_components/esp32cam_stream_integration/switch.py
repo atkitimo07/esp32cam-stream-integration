@@ -5,8 +5,8 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import aiohttp
 
+from .auto_control import AUTO_IR_LED_ENABLED, AUTO_NIGHT_VISION_ENABLED
 from .const import CONF_BASE_URL, DOMAIN
-from .coordinator import AUTO_IR_LED_ENABLED, AUTO_NIGHT_VISION_ENABLED
 from .helpers import build_device_info
 
 

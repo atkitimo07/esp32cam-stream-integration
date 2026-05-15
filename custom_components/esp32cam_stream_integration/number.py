@@ -2,8 +2,7 @@ from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfTime
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import CONF_BASE_URL, DOMAIN
-from .coordinator import (
+from .auto_control import (
     ANALYSIS_INTERVAL,
     IR_LED_BRIGHTNESS,
     IR_LED_OFF_THRESHOLD,
@@ -11,6 +10,7 @@ from .coordinator import (
     NIGHT_VISION_OFF_THRESHOLD,
     NIGHT_VISION_ON_THRESHOLD,
 )
+from .const import CONF_BASE_URL, DOMAIN
 from .helpers import build_device_info
 
 

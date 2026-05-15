@@ -1,7 +1,6 @@
 import asyncio
 import aiohttp
 from datetime import timedelta
-from io import BytesIO
 import json
 import logging
 from time import monotonic
@@ -9,34 +8,14 @@ from urllib.parse import urlencode
 
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from PIL import Image, UnidentifiedImageError
 
+from .auto_control import ANALYSIS_INTERVAL, DEFAULT_SETTINGS, analyze_snapshot, choose_actions
 from .const import CONF_GO2RTC_BASE_URL, CONF_GO2RTC_CAMERA_NAME
 from .helpers import normalize_base_url
 
 _LOGGER = logging.getLogger(__name__)
 
 AVAILABILITY_FAILURE_THRESHOLD = 2
-
-AUTO_NIGHT_VISION_ENABLED = "auto_night_vision_enabled"
-AUTO_IR_LED_ENABLED = "auto_ir_led_enabled"
-ANALYSIS_INTERVAL = "analysis_interval"
-NIGHT_VISION_ON_THRESHOLD = "night_vision_on_threshold"
-NIGHT_VISION_OFF_THRESHOLD = "night_vision_off_threshold"
-IR_LED_ON_THRESHOLD = "ir_led_on_threshold"
-IR_LED_OFF_THRESHOLD = "ir_led_off_threshold"
-IR_LED_BRIGHTNESS = "ir_led_brightness"
-
-DEFAULT_SETTINGS = {
-    AUTO_NIGHT_VISION_ENABLED: False,
-    AUTO_IR_LED_ENABLED: False,
-    ANALYSIS_INTERVAL: 30,
-    NIGHT_VISION_ON_THRESHOLD: 45,
-    NIGHT_VISION_OFF_THRESHOLD: 65,
-    IR_LED_ON_THRESHOLD: 35,
-    IR_LED_OFF_THRESHOLD: 55,
-    IR_LED_BRIGHTNESS: 75,
-}
 
 
 def _parse_float(value):
@@ -64,47 +43,6 @@ def _parse_float(value):
 def _parse_int(value):
     parsed = _parse_float(value)
     return int(parsed) if parsed is not None else None
-
-
-def _percentile(sorted_values, percentile):
-    if not sorted_values:
-        return None
-
-    index = round((len(sorted_values) - 1) * percentile)
-    return sorted_values[index]
-
-
-def _analyze_snapshot(image_bytes):
-    try:
-        with Image.open(BytesIO(image_bytes)) as image:
-            image = image.convert("RGB")
-            image.thumbnail((160, 120))
-            pixels = list(image.getdata())
-    except (UnidentifiedImageError, OSError) as err:
-        _LOGGER.debug("Unable to analyze snapshot: %s", err)
-        return None
-
-    if not pixels:
-        return None
-
-    luminance_values = []
-    pink_values = []
-    for red, green, blue in pixels:
-        luminance_values.append(
-            round((0.2126 * red) + (0.7152 * green) + (0.0722 * blue), 2)
-        )
-        pink_values.append(max((((red + blue) / 2) - green), 0))
-
-    luminance_values.sort()
-    pink_pixel_count = sum(1 for value in pink_values if value >= 30)
-
-    return {
-        "mean_luminance": round(sum(luminance_values) / len(luminance_values), 2),
-        "median_luminance": round(_percentile(luminance_values, 0.5), 2),
-        "p25_luminance": round(_percentile(luminance_values, 0.25), 2),
-        "pink_index": round((sum(pink_values) / len(pink_values)) / 255 * 100, 2),
-        "pink_pixel_percent": round(pink_pixel_count / len(pixels) * 100, 2),
-    }
 
 
 class CameraCoordinator(DataUpdateCoordinator):
@@ -234,7 +172,7 @@ class CameraCoordinator(DataUpdateCoordinator):
         if image is None:
             return last_analysis
 
-        analysis = await self.hass.async_add_executor_job(_analyze_snapshot, image)
+        analysis = await self.hass.async_add_executor_job(analyze_snapshot, image)
         if analysis is None:
             return last_analysis
 
@@ -242,47 +180,24 @@ class CameraCoordinator(DataUpdateCoordinator):
         return analysis
 
     async def _apply_automatic_control(self, data):
-        analysis = data.get("image_analysis", {})
-        luminance = analysis.get("p25_luminance")
-        if luminance is None:
-            return
-
         night_vision_state = data.get("nightvision", {}).get("state")
         night_vision_on = bool(night_vision_state) if night_vision_state is not None else False
         ir_state = data.get("irled", {}).get("state")
         ir_on = bool(ir_state) if ir_state is not None else False
-        night_vision_changed = False
+        actions = choose_actions(
+            self.settings,
+            data.get("image_analysis", {}),
+            night_vision_on,
+            ir_on,
+        )
 
-        if self.settings[AUTO_NIGHT_VISION_ENABLED]:
-            if not night_vision_on and luminance <= self.settings[NIGHT_VISION_ON_THRESHOLD]:
-                if await self._safe_set_state("nightvision", 1):
-                    data["nightvision"]["state"] = 1
-                    night_vision_on = True
-                    night_vision_changed = True
+        for action in actions:
+            if await self._safe_set_state(action.path, action.state):
+                if action.path == "nightvision":
+                    data["nightvision"]["state"] = action.state
                     self._last_image_analysis_at = 0
-            elif night_vision_on and luminance >= self.settings[NIGHT_VISION_OFF_THRESHOLD]:
-                if await self._safe_set_state("nightvision", 0):
-                    data["nightvision"]["state"] = 0
-                    night_vision_on = False
-                    night_vision_changed = True
-                    self._last_image_analysis_at = 0
-
-        if not night_vision_on:
-            if ir_on:
-                if await self._safe_set_state("irled", 0):
-                    data["irled"]["state"] = 0
-            return
-
-        if night_vision_changed or not self.settings[AUTO_IR_LED_ENABLED]:
-            return
-
-        if not ir_on and luminance <= self.settings[IR_LED_ON_THRESHOLD]:
-            brightness = round(self.settings[IR_LED_BRIGHTNESS] / 100, 3)
-            if await self._safe_set_state("irled", brightness):
-                data["irled"]["state"] = brightness
-        elif ir_on and luminance >= self.settings[IR_LED_OFF_THRESHOLD]:
-            if await self._safe_set_state("irled", 0):
-                data["irled"]["state"] = 0
+                elif action.path == "irled":
+                    data["irled"]["state"] = action.state
 
     async def _async_update_data(self):
         # Run concurrently but isolate failures per request

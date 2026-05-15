@@ -2,8 +2,8 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .auto_control import IR_LED_ON_THRESHOLD, NIGHT_VISION_ON_THRESHOLD
 from .const import CONF_BASE_URL, DOMAIN
-from .coordinator import IR_LED_ON_THRESHOLD, NIGHT_VISION_ON_THRESHOLD
 from .helpers import build_device_info
 
 
