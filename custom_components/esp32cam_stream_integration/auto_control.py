@@ -56,7 +56,13 @@ def analyze_snapshot(image_bytes):
 
     luminance_values = []
     pink_values = []
+    red_total = 0
+    green_total = 0
+    blue_total = 0
     for red, green, blue in pixels:
+        red_total += red
+        green_total += green
+        blue_total += blue
         luminance_values.append(
             round((0.2126 * red) + (0.7152 * green) + (0.0722 * blue), 2)
         )
@@ -64,11 +70,15 @@ def analyze_snapshot(image_bytes):
 
     luminance_values.sort()
     pink_pixel_count = sum(1 for value in pink_values if value >= 30)
+    rgb_total = red_total + green_total + blue_total
 
     return {
         "mean_luminance": round(sum(luminance_values) / len(luminance_values), 2),
         "median_luminance": round(percentile(luminance_values, 0.5), 2),
         "p25_luminance": round(percentile(luminance_values, 0.25), 2),
+        "red_proportion": round(red_total / rgb_total * 100, 2) if rgb_total else 0,
+        "green_proportion": round(green_total / rgb_total * 100, 2) if rgb_total else 0,
+        "blue_proportion": round(blue_total / rgb_total * 100, 2) if rgb_total else 0,
         "pink_index": round((sum(pink_values) / len(pink_values)) / 255 * 100, 2),
         "pink_pixel_percent": round(pink_pixel_count / len(pixels) * 100, 2),
     }

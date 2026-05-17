@@ -110,6 +110,9 @@ Sensors:
 - Image Mean Luminance
 - Image Median Luminance
 - Image P25 Luminance
+- Image Red Proportion
+- Image Green Proportion
+- Image Blue Proportion
 - Image Pink Index
 - Image Pink Pixels
 
@@ -150,42 +153,14 @@ The automatic control is intentionally two-pass:
 The IR LED is never automatically enabled unless night vision is already on. If
 night vision is turned off, the integration also turns the IR LED off.
 
-Snapshots for image analysis are fetched from go2rtc:
-
-```text
-/api/frame.jpeg?src=<go2rtc camera name>
-```
-
-## Image Analysis Sensors
-
-The integration exposes diagnostic sensors to help tune automatic control:
-
-- Image Mean Luminance
-- Image Median Luminance
-- Image P25 Luminance
-- Image Pink Index
-- Image Pink Pixels
-
 Automatic turn-on decisions use Image P25 Luminance, which is less sensitive to
 isolated bright areas than a full-frame average. Automatic turn-off decisions use
 Image Pink Pixels so the lights are switched off when the IR/pink cast falls
 below the configured threshold.
 
-## Automatic Control Entities
-
-The following configuration switches enable or disable automatic behavior:
-
-- Auto Night Vision
-- Auto IR LED
-
-The following number entities tune the control loop:
-
-- Image Analysis Interval
-- Night Vision On Threshold
-- Night Vision Pink Pixels Off Threshold
-- IR LED On Threshold
-- IR LED Pink Pixels Off Threshold
-- IR LED Auto Brightness
+Automatic control decisions use a moving average of Image P25 Luminance and
+Image Pink Pixels over the configured low-pass sample count. The exposed image
+analysis sensors remain the raw latest snapshot values.
 
 The on thresholds are luminance values. The off thresholds are Image Pink Pixels
 percentages.

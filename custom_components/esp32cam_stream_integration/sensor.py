@@ -37,6 +37,18 @@ ANALYSIS_SENSOR_METADATA = {
     "p25_luminance": {
         "name": "Image P25 Luminance",
     },
+    "red_proportion": {
+        "name": "Image Red Proportion",
+        "unit": "%",
+    },
+    "green_proportion": {
+        "name": "Image Green Proportion",
+        "unit": "%",
+    },
+    "blue_proportion": {
+        "name": "Image Blue Proportion",
+        "unit": "%",
+    },
     "pink_index": {
         "name": "Image Pink Index",
         "unit": "%",
