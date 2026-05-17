@@ -1,4 +1,8 @@
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -23,6 +27,38 @@ SENSOR_METADATA = {
     },
 }
 
+ANALYSIS_SENSOR_METADATA = {
+    "mean_luminance": {
+        "name": "Image Mean Luminance",
+    },
+    "median_luminance": {
+        "name": "Image Median Luminance",
+    },
+    "p25_luminance": {
+        "name": "Image P25 Luminance",
+    },
+    "red_proportion": {
+        "name": "Image Red Proportion",
+        "unit": "%",
+    },
+    "green_proportion": {
+        "name": "Image Green Proportion",
+        "unit": "%",
+    },
+    "blue_proportion": {
+        "name": "Image Blue Proportion",
+        "unit": "%",
+    },
+    "pink_index": {
+        "name": "Image Pink Index",
+        "unit": "%",
+    },
+    "pink_pixel_percent": {
+        "name": "Image Pink Pixels",
+        "unit": "%",
+    },
+}
+
 
 def _parse_number(value):
     if value in (None, "", "null"):
@@ -43,7 +79,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([
         StatusSensor(name, "fps", base_url, host, coordinator),
         StatusSensor(name, "rssi", base_url, host, coordinator),
-        StatusSensor(name, "temp", base_url, host, coordinator)
+        StatusSensor(name, "temp", base_url, host, coordinator),
+        *[
+            ImageAnalysisSensor(name, key, base_url, host, coordinator)
+            for key in ANALYSIS_SENSOR_METADATA
+        ],
     ])
 
 
@@ -77,3 +117,36 @@ class StatusSensor(CoordinatorEntity, SensorEntity):
     def native_value(self):
         status = self.coordinator.data.get("status", {})
         return _parse_number(status.get(self._key))
+
+
+class ImageAnalysisSensor(CoordinatorEntity, SensorEntity):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, name, key, base_url, host, coordinator):
+        super().__init__(coordinator)
+        self._name = name
+        self._key = key
+        self._host = host
+        self._attr_device_info = build_device_info(name, host, base_url)
+        metadata = ANALYSIS_SENSOR_METADATA[key]
+        self._attr_native_unit_of_measurement = metadata.get("unit")
+
+    @property
+    def name(self):
+        return f"{self._name} {ANALYSIS_SENSOR_METADATA[self._key]['name']}"
+
+    @property
+    def unique_id(self):
+        return f"{self._host}_{self._key}"
+
+    @property
+    def available(self):
+        return (
+            bool(self.coordinator.data.get("available"))
+            and self.coordinator.data.get("image_analysis", {}).get(self._key) is not None
+        )
+
+    @property
+    def native_value(self):
+        return self.coordinator.data.get("image_analysis", {}).get(self._key)

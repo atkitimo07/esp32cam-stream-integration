@@ -7,5 +7,5 @@
   "issue_tracker": "https://github.com/<you>/esp32cam-stream-integration/issues",
   "dependencies": [],
   "codeowners": ["@<you>"],
-  "requirements": ["aiohttp"]
+  "requirements": ["aiohttp", "Pillow"]
 }
