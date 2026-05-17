@@ -122,9 +122,9 @@ Numbers:
 
 - Image Analysis Interval
 - Night Vision On Threshold
-- Night Vision Off Threshold
+- Night Vision Pink Pixels Off Threshold
 - IR LED On Threshold
-- IR LED Off Threshold
+- IR LED Pink Pixels Off Threshold
 - IR LED Auto Brightness
 
 ## Manual Controls
@@ -166,9 +166,10 @@ The integration exposes diagnostic sensors to help tune automatic control:
 - Image Pink Index
 - Image Pink Pixels
 
-Automatic decisions currently use Image P25 Luminance, which is less sensitive
-to isolated bright areas than a full-frame average. The pink metrics are exposed
-for tuning and future control logic.
+Automatic turn-on decisions use Image P25 Luminance, which is less sensitive to
+isolated bright areas than a full-frame average. Automatic turn-off decisions use
+Image Pink Pixels so the lights are switched off when the IR/pink cast falls
+below the configured threshold.
 
 ## Automatic Control Entities
 
@@ -181,22 +182,22 @@ The following number entities tune the control loop:
 
 - Image Analysis Interval
 - Night Vision On Threshold
-- Night Vision Off Threshold
+- Night Vision Pink Pixels Off Threshold
 - IR LED On Threshold
-- IR LED Off Threshold
+- IR LED Pink Pixels Off Threshold
 - IR LED Auto Brightness
 
-The on/off thresholds provide hysteresis so the camera does not rapidly toggle
-around a single brightness value.
+The on thresholds are luminance values. The off thresholds are Image Pink Pixels
+percentages.
 
 Default values:
 
 - Image Analysis Interval: `30` seconds
-- Night Vision On Threshold: `45`
-- Night Vision Off Threshold: `65`
-- IR LED On Threshold: `35`
-- IR LED Off Threshold: `55`
-- IR LED Auto Brightness: `75%`
+- Night Vision On Threshold: `10`
+- Night Vision Pink Pixels Off Threshold: `80%`
+- IR LED On Threshold: `20`
+- IR LED Pink Pixels Off Threshold: `98%`
+- IR LED Auto Brightness: `1%`
 
 Automatic control switches and tuning numbers are restored by Home Assistant, so
 the last configured values are reused after restart.

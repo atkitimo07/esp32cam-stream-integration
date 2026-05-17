@@ -5,10 +5,10 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .auto_control import (
     ANALYSIS_INTERVAL,
     IR_LED_BRIGHTNESS,
-    IR_LED_OFF_THRESHOLD,
     IR_LED_ON_THRESHOLD,
-    NIGHT_VISION_OFF_THRESHOLD,
+    IR_LED_PINK_OFF_THRESHOLD,
     NIGHT_VISION_ON_THRESHOLD,
+    NIGHT_VISION_PINK_OFF_THRESHOLD,
 )
 from .const import CONF_BASE_URL, DOMAIN
 from .helpers import build_device_info
@@ -28,11 +28,12 @@ NUMBER_METADATA = {
         "max": 255,
         "step": 1,
     },
-    NIGHT_VISION_OFF_THRESHOLD: {
-        "name": "Night Vision Off Threshold",
+    NIGHT_VISION_PINK_OFF_THRESHOLD: {
+        "name": "Night Vision Pink Pixels Off Threshold",
         "min": 0,
-        "max": 255,
+        "max": 100,
         "step": 1,
+        "unit": PERCENTAGE,
     },
     IR_LED_ON_THRESHOLD: {
         "name": "IR LED On Threshold",
@@ -40,11 +41,12 @@ NUMBER_METADATA = {
         "max": 255,
         "step": 1,
     },
-    IR_LED_OFF_THRESHOLD: {
-        "name": "IR LED Off Threshold",
+    IR_LED_PINK_OFF_THRESHOLD: {
+        "name": "IR LED Pink Pixels Off Threshold",
         "min": 0,
-        "max": 255,
+        "max": 100,
         "step": 1,
+        "unit": PERCENTAGE,
     },
     IR_LED_BRIGHTNESS: {
         "name": "IR LED Auto Brightness",
@@ -93,6 +95,10 @@ class AutoControlNumber(RestoreEntity, NumberEntity):
         try:
             value = float(last_state.state)
         except (TypeError, ValueError):
+            return
+
+        metadata = NUMBER_METADATA[self._key]
+        if value < metadata["min"] or value > metadata["max"]:
             return
 
         self._coordinator.update_setting(self._key, value)
